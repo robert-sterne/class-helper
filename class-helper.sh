@@ -1,15 +1,23 @@
 #!/bin/bash
 
-##############################
-#  Class Related Directories #
-##############################
+###################################
+#  Class Related Directories      #
+#  Check to set up for your class #
+###################################
 
 # Lesson Plans Directory location
-DATAVIZ=~Path/to/master/lesson/plans
+DATAVIZ=~/Path/to/master/lesson/plans
+COURSE_BRANCH="master"     ## SET TO CORRECT GIT BRANCH IF NOT USING MASTER
+
 # Class Repo Directory
 CLASSREPO=~Documents/Test
+CLASS_BRANCH="master"      ## SET TO CORRECT GIT BRANCH IF NOT USING MASTER
+
 # Class Day Path
+# Script stores units in $CLASSREPO/$CLASSDAY/<Unit Name>
 CLASSDAY=/MW #/TTH
+
+
 
 ###############################
 #        Shhhh Commands       #
@@ -30,14 +38,28 @@ popd () {
 # Check repo changes before doing anything
 function gitchecker () {
    echo "Checking status of Repositories"
-   pushd $DATAVIZ; diffchecker "Lesson Plan"; 
-   pushd $CLASSREPO; diffchecker "Class Repo"; 
+   # After string, add branch if course using branch other than "master"
+   pushd $DATAVIZ; diffchecker "Lesson Plan" $COURSE_BRANCH; 
+   pushd $CLASSREPO; diffchecker "Class Repo" $CLASS_BRANCH; 
    
 }
 
 # Quietly check for differences in local and remote repos
+# Takes up to 2 args:
+#   $1 - Repo name
+#   $2 - branch to check
+# Splits `git fetch` from `git merge` to accurately determine if changes made.
 function diffchecker () {
-   if [[ `git diff HEAD origin/master` ]]; then
+   #  Determine if branch variable set, exit if not set
+   if [ -z $2 ]; then
+       echo "Error. Git breanch not set when checking for updates" >&2
+	   exit 1
+   fi
+   
+   git fetch origin $2 > /dev/null 2>&1
+   
+   
+   if [[ $(git diff --name-status HEAD origin/$2 | wc -l) -eq 0 ]]; then
       echo "$1 is up to date"
       
    else
@@ -48,7 +70,7 @@ function diffchecker () {
          [Nn]* )
          ;;
          [Yy]* | *) 
-            git pull -q origin master;      
+            git merge -q origin $2;      
          ;;
       esac
    fi
